@@ -1,2 +1,2 @@
 # smu_v2_curvehandling
-Resampling uroflowmetry curve more accurately and generate features by representing learning
+Resample uroflowmetry curve more accurately and generate features by representing learning
