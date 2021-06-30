@@ -17,17 +17,29 @@ with open('./source/labels.csv', 'r', encoding='utf-8-sig') as f:
     f.close()
 
 number_list = samples[0]
+bci_list = samples[1]
+booi_list = samples[2]
 label_list = samples[3]
+vv_list = samples[4]
 qmax_list = samples[5]
+qave_list = samples[6]
+avr_list = samples[7]
 vt_list = samples[8]
 
+qmax_list = np.array(qmax_list).astype(float)
 vt_list = np.array(vt_list).astype(float)
+
+normal_count = 0
+boo_count = 0
+du_count = 0
+mix_count = 0
 
 unclear_samples = get_unclear_samples()
 dirty_samples = get_dirty_samples()
 non_standard_samples = get_non_standard_samples()
 
 curve_consequences = []
+sample_consequences = []
 
 with open('./ERROR', 'w') as error_file:
     for i in range(len(number_list)):
@@ -53,7 +65,7 @@ with open('./ERROR', 'w') as error_file:
                 error_file.write(_number + ' time is not correct. Receive ' + str(raw_data_x[-1]) + '. Expect ' + str(vt_list[i]) + '\n')
                 continue
 
-            if abs(float(np.max(raw_data_y)) - float(qmax_list[i])) > 2:
+            if abs(np.max(raw_data_y) - float(qmax_list[i])) > 2:
                 error_file.write(_number + ' qmax is not correct. Receive ' + str(np.max(raw_data_y)) + '. Expect ' + str(qmax_list[i]) + '\n')
                 continue
 
@@ -64,11 +76,28 @@ with open('./ERROR', 'w') as error_file:
 
             raw_data_y[-1] = 0
 
+            # output the ratio of uroflowmetry curve
             handled_y = curve_interpolation(raw_data_x, raw_data_y, 200)
             curve_handled_result = [_number, label_list[i]]
             curve_handled_result.extend(handled_y)
             curve_consequences.append(curve_handled_result)
 
+            # incorporate other features and output
+            sample_vector = [_number, bci_list[i], booi_list[i], vv_list[i], label_list[i],
+                             qmax_list[i], qave_list[i], avr_list[i], vt_list[i]]
+            sample_consequences.append(sample_vector)
+
+            # count the number of each type
+            if label_list[i] == 'Normal':
+                normal_count += 1
+            elif label_list[i] == 'BOO':
+                boo_count += 1
+            elif label_list[i] == 'DU':
+                du_count += 1
+            else:
+                mix_count += 1
+
+            # draw figures
             plot_x = range(200)
             plt.plot(plot_x, handled_y, color='black', linewidth=1)
             plt.savefig('./output/figs/' + _number + '.jpg')
@@ -78,9 +107,21 @@ with open('./ERROR', 'w') as error_file:
 
     error_file.close()
 
-with open('./curve_handled.csv', 'w') as output_file:
-    csv_writer = csv.writer(output_file)
+with open('./samples.csv', 'w') as sample_output_file:
+    csv_writer = csv.writer(sample_output_file)
+    for sample in sample_consequences:
+        csv_writer.writerow(sample)
+    sample_output_file.close()
+
+with open('./curve_handled.csv', 'w') as curve_output_file:
+    csv_writer = csv.writer(curve_output_file)
     for curve in curve_consequences:
         csv_writer.writerow(curve)
-    output_file.close()
+    curve_output_file.close()
+
+print('Normal: ', str(normal_count), ' BOO: ', str(boo_count),
+      ' DU: ', str(du_count), ' MIX: ', str(mix_count))
+
+print('Total: ', len(curve_consequences))
+
 print('Finish!')
